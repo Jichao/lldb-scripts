@@ -1,11 +1,18 @@
 import lldb
 import time
 
-class SimpleStep:
+class GotoUser:
     def __init__ (self, thread_plan, dict):
-		self.start_time = time.time()
-		self.thread_plan = thread_plan
-		self.start_address = thread_plan.GetThread().GetFrameAtIndex(0).GetPC()
+        self.start_time = time.time()
+        self.thread_plan = thread_plan
+        target = self.thread_plan.GetThread().GetProcess().GetTarget();
+        module = target.GetModuleAtIndex(0)
+        sbaddr = lldb.SBAddress(module.GetObjectFileHeaderAddress())
+        self.start_address = sbaddr.GetLoadAddress(target)
+        module = target.GetModuleAtIndex(1)
+        sbaddr = lldb.SBAddress(module.GetObjectFileHeaderAddress())
+        self.end_address = sbaddr.GetLoadAddress(target)
+        print "start addr: ", hex(self.start_address), " end addr: ", hex(self.end_address)
 
     def explains_stop (self, event):
         if self.thread_plan.GetThread().GetStopReason()== lldb.eStopReasonTrace:
@@ -15,10 +22,7 @@ class SimpleStep:
 
     def should_stop (self, event):
 		cur_pc = self.thread_plan.GetThread().GetFrameAtIndex(0).GetPC()
-		sbaddr = lldb.SBAddress()
-		target = self.thread_plan.GetThread().GetProcess().GetTarget()
-		sbaddr.SetLoadAddress(cur_pc, target)
-		if sbaddr.GetModule() == target.GetModuleAtIndex(0):
+		if cur_pc >= self.start_address and cur_pc <= self.end_address:
 			self.thread_plan.SetPlanComplete(True)
 			print 'time used ', (time.time() - self.start_time)
 			return True

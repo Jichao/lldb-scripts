@@ -1,5 +1,6 @@
 import lldb
 
+#assume 32-bit address
 def va2fa(debugger, command, result, dict):
     va = int(command, 0)
     target = debugger.GetSelectedTarget()
